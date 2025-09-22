@@ -1,0 +1,94 @@
+plugins {
+    id("de.undercouch.download") version "5.6.0"
+    alias(libs.plugins.kotlin.jvm)
+}
+
+group = 'org.bytedeco.javacv'
+version = '1.5.12'
+description = 'demo'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir files('../../javacv/samples')
+            include 'YOLONet.java'
+        }
+        resources {
+            srcDir files('../../javacv/samples')
+            includes = [""]
+        }
+    }
+}
+
+// Define URLs for the YOLONet files
+def yoloCfgUrl = "https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4.cfg"
+def yoloWeightsUrl = "https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v3_optimal/yolov4.weights"
+def cocoNamesUrl = "https://raw.githubusercontent.com/AlexeyAB/darknet/master/data/coco.names"
+def dogImageUrl = "https://raw.githubusercontent.com/AlexeyAB/darknet/master/data/dog.jpg"
+
+// Define a unique directory within this module's build directory for runtime files
+// Using a specific suffix to avoid potential clashes if other subprojects also use "runFiles"
+def runFilesDir = file("$buildDir/runFiles")
+
+// Task to download yolov4.cfg
+tasks.register('downloadYoloCfg', Download) {
+    description = "Downloads yolov4.cfg for YOLONet"
+    group = "build setup" // Good practice to group setup tasks
+    src(yoloCfgUrl)
+    dest(new File(runFilesDir, "yolov4.cfg"))
+    overwrite(false) // Only download if the file doesn't exist or source is newer (if 'onlyIfModified true')
+}
+
+// Task to download yolov4.weights
+tasks.register('downloadYoloWeights', Download) {
+    description = "Downloads yolov4.weights for YOLONet"
+    group = "build setup"
+    src(yoloWeightsUrl)
+    dest(new File(runFilesDir, "yolov4.weights"))
+    overwrite(false)
+}
+
+// Task to download coco.names
+tasks.register('downloadCocoNames', Download) {
+    description = "Downloads coco.names for YOLONet"
+    group = "build setup"
+    src(cocoNamesUrl)
+    dest(new File(runFilesDir, "coco.names"))
+    overwrite(false)
+}
+
+// Task to download dog.jpg
+tasks.register('downloadDogImage', Download) {
+    description = "Downloads dog.jpg for YOLONet"
+    group = "build setup"
+    src(dogImageUrl)
+    dest(new File(runFilesDir, "dog.jpg"))
+    overwrite(false)
+}
+
+//FIXME  must disable "imshow("Kazemi Facial Landmark", img);" for  JavaExec run ?
+tasks.register('run', JavaExec) {
+    group = "application"
+    description = "Runs the YOLONet main method"
+    dependsOn downloadYoloCfg, downloadYoloWeights, downloadCocoNames, downloadDogImage
+
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'YOLONet'
+    workingDir = runFilesDir
+    systemProperty "java.awt.headless", "false"
+}
+
+dependencies {
+
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}

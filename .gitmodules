@@ -1,0 +1,3 @@
+[submodule "javacv"]
+	path = javacv
+	url = git@github.com:cybernhl/javacv.git

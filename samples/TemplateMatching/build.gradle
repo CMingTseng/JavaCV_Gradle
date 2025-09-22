@@ -1,0 +1,45 @@
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+}
+//FIXME lost  bg.jpg" " imageToFind.jpg"
+group = 'org.bytedeco.javacv'
+version = '1.5.12'
+description = 'demo'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir files('../../javacv/samples')
+            include 'TemplateMatching.java'
+        }
+        resources {
+            srcDir files('../../javacv/samples')
+            includes = ["bg.jpg", "imageToFind.jpg"]
+        }
+    }
+}
+
+tasks.register('run', JavaExec) {
+    group = "application"
+    description = "Runs the TemplateMatching main method"
+
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'TemplateMatching'
+    workingDir = rootProject.file("samples")
+    args "bg.jpg", "imageToFind.jpg"
+}
+
+dependencies {
+
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}

@@ -1,0 +1,45 @@
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+}
+
+group = 'org.bytedeco.javacv'
+version = '1.5.12'
+description = 'demo'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir files('../../javacv/samples')
+            include 'OpticalFlowDense.java'
+        }
+        resources {
+            srcDir files('../../javacv/samples')
+            includes = ["image0.png","image1.png"]
+        }
+    }
+}
+
+tasks.register('run', JavaExec) {
+    group = "application"
+    description = "Runs the OpticalFlowDense main method"
+
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'OpticalFlowDense'
+    //FIXME because OpticalFlowDense use hardcode "samples/image0.png" "samples/image1.png"
+    workingDir = rootProject.projectDir
+}
+
+dependencies {
+
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}

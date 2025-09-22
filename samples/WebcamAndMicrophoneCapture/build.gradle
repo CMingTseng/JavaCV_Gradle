@@ -1,0 +1,140 @@
+import java.nio.file.Files
+
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+}
+
+group = 'org.bytedeco.javacv'
+version = '1.5.12'
+description = 'demo'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir files('../../javacv/samples')
+            include 'WebcamAndMicrophoneCapture.java'
+        }
+        resources {
+            srcDir files('../../javacv/samples')
+            includes = [""]
+        }
+    }
+}
+
+// Helper function to locate the class file
+File locateWebcamClassFile(Project proj) {
+    File classFile = proj.sourceSets.main.output.classesDirs.findResult { File dir ->
+        File potentialFile = new File(dir, "WebcamAndMicrophoneCapture.class")
+        potentialFile.exists() ? potentialFile : null
+    }
+    if (classFile == null) {
+        // If the file is not found, throw an exception.
+        // This will cause the Provider to fail, and Gradle will report this failure.
+        throw new org.gradle.api.tasks.StopExecutionException(
+                "Required class file 'WebcamAndMicrophoneCapture.class' not found in output directories. Searched in: ${proj.sourceSets.main.output.classesDirs.files.join(", ")}"
+        )
+    }
+    return classFile
+}
+//FIXME hackway find "final OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(WEBCAM_DEVICE_INDEX);" force change 0 !!
+tasks.register('modifyWebcamDeviceIndexInClass', DefaultTask) {
+    description = "DANGEROUSLY attempts to modify WEBCAM_DEVICE_INDEX in WebcamAndMicrophoneCapture.class"
+    group = "build"
+    dependsOn classes
+
+    // Provider for the target file.
+    // If locateWebcamClassFile throws an exception (because file not found),
+    // this provider will fail to resolve, and the build will stop with that error.
+    final Provider<File> targetFileProvider = project.provider {
+        locateWebcamClassFile(project)
+    }
+
+    // Declare the file as a mandatory input.
+    // If targetFileProvider fails to resolve, this declaration might not even be fully processed
+    // before Gradle stops due to the provider error.
+    inputs.file(targetFileProvider)
+            .withPathSensitivity(PathSensitivity.ABSOLUTE)
+            .withPropertyName("targetClassFile")
+    // Gradle expects "targetClassFile" to have a non-null value from targetFileProvider.
+    // By throwing an exception in locateWebcamClassFile if not found, we ensure
+    // that if the provider *does* resolve, it resolves to a non-null File.
+
+    // inputs.property("oldDeviceIndex", 1) // Example if you made these configurable
+    // inputs.property("newDeviceIndex", 0)
+
+    doLast {
+        File actualTargetClassFile = targetFileProvider.get() // Assumes this provider works and file exists
+
+        if (actualTargetClassFile == null || !actualTargetClassFile.exists()) {
+            println "Error: WebcamAndMicrophoneCapture.class not found. Skipping modification."
+            return
+        }
+
+        println "Attempting to modify device index in ${actualTargetClassFile.absolutePath}"
+        byte[] classBytes = Files.readAllBytes(actualTargetClassFile.toPath())
+        boolean modified = false
+
+        // Opcode for DUP: 0x59
+        // Opcode for ICONST_1: 0x04
+        // Opcode for ICONST_0: 0x03
+
+        // We are looking for the sequence [DUP, ICONST_1] which is [0x59, 0x04]
+        // and want to change it to [DUP, ICONST_0] which is [0x59, 0x03]
+
+        // Iterate up to classBytes.length - 2 to safely check classBytes[i] and classBytes[i+1]
+        for (int i = 0; i < classBytes.length - 1; i++) {
+            if (classBytes[i] == (byte)0x59 && classBytes[i+1] == (byte)0x04) {
+                // Found the DUP, ICONST_1 sequence
+                println "Found potential DUP (0x59) followed by ICONST_1 (0x04) at byte offset ${i}."
+                println "Replacing ICONST_1 at offset ${i+1} with ICONST_0 (0x03)."
+
+                classBytes[i+1] = (byte)0x03; // Replace ICONST_1 with ICONST_0
+                modified = true;
+
+                // For this experiment, we'll modify only the *first* occurrence found.
+                // In a real scenario, this is still not safe enough as there could be
+                // other DUP, ICONST_1 sequences.
+                break;
+            }
+        }
+
+        if (modified) {
+            println "Byte sequence modified. Writing changes back to class file (AT YOUR OWN RISK)."
+            try {
+                Files.write(actualTargetClassFile.toPath(), classBytes);
+                println "Class file successfully overwritten with attempted modifications."
+            } catch (IOException e) {
+                println "ERROR writing modified class file: " + e.getMessage()
+                // If writing fails, you might want to restore from a backup or recompile
+            }
+        } else {
+            println "Did not find the specific byte sequence (DUP then ICONST_1) to modify."
+            println "The actual bytecode might be different due to compiler optimizations or other reasons."
+        }
+        println "Finished *attempting* to modify ${actualTargetClassFile.absolutePath}"
+    }
+}
+
+tasks.register('run', JavaExec) {
+    group = "application"
+    description = "Runs the WebcamAndMicrophoneCapture main method"
+    dependsOn modifyWebcamDeviceIndexInClass //FIXME hackway !!  Make it depend on the modification task
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'WebcamAndMicrophoneCapture'
+    workingDir = rootProject.file("samples")
+}
+
+dependencies {
+
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}

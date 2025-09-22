@@ -1,0 +1,42 @@
+plugins {
+    id 'application'
+    alias(libs.plugins.kotlin.jvm)
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+group = 'org.bytedeco.javacv'
+version = '1.5.12'
+description = 'demo'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir files('../../javacv/samples')
+            include 'JavaFxPlayVideoAndAudio.java'
+        }
+    }
+}
+
+javafx {
+    version = "17" //TODO here must match  Java sourceCompatibility &targetCompatibility
+    modules = ['javafx.controls', 'javafx.graphics']
+}
+
+//FIXME modify "videoFilename" at JavaFxPlayVideoAndAudio.java
+application {
+    mainClass.set("JavaFxPlayVideoAndAudio")
+}
+
+dependencies {
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}

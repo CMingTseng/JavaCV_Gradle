@@ -1,0 +1,40 @@
+plugins {
+    id 'application'
+    alias(libs.plugins.kotlin.jvm)
+}
+
+group = 'org.bytedeco.javacv'
+version = '1.5.12'
+description = 'demo'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+//    modularity.inferModulePath.set(true)
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir files('../../javacv/samples')
+            include 'AudioSplitMergeHelper.java'
+        }
+//        resources {
+//
+//        }
+    }
+}
+
+application {
+    mainClass.set("AudioSplitMergeHelper")
+}
+
+dependencies {
+
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}

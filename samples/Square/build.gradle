@@ -1,0 +1,45 @@
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+}
+//FIXME lost   "pic2.png", "pic3.png", "pic4.png", "pic5.png", "pic6.png"
+group = 'org.bytedeco.javacv'
+version = '1.5.12'
+description = 'demo'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir files('../../javacv/samples')
+            include 'Square.java'
+        }
+        resources {
+            srcDir files('../../javacv/samples')
+            includes = ["pic1.png", "pic2.png", "pic3.png",
+                        "pic4.png", "pic5.png", "pic6.png"]
+        }
+    }
+}
+
+tasks.register('run', JavaExec) {
+    group = "application"
+    description = "Runs the Square main method"
+
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'Square'
+    workingDir = rootProject.file("samples")
+}
+
+dependencies {
+
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}

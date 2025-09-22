@@ -1,0 +1,68 @@
+plugins {
+    id("de.undercouch.download") version "5.6.0"
+    alias(libs.plugins.kotlin.jvm)
+}
+
+group = 'org.bytedeco.javacv'
+version = '1.5.12'
+description = 'demo'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir files('../../javacv/samples')
+            include 'LBFFacemarkExampleWithVideo.java'
+        }
+        resources {
+            srcDir files('../../javacv/samples')
+            includes = ["haarcascade_frontalface_alt2.xml"]
+        }
+    }
+}
+
+// URL for the lbfmodel.yaml
+def lbfModelUrl = "https://raw.githubusercontent.com/kurnianggoro/GSOC2017/master/data/lbfmodel.yaml"
+
+// Define a directory within the module's build directory for runtime files
+def runFilesDir = file("$buildDir/runFiles") // Unique name
+
+// Task to download lbfmodel.yaml
+tasks.register('downloadLbfModel', Download) {
+    description = "Downloads lbfmodel.yaml for LBFFacemarkExampleWithVideo"
+    group = "build setup"
+    src(lbfModelUrl)
+    dest(new File(runFilesDir, "lbfmodel.yaml"))
+    overwrite(false) // Only download if the file doesn't exist
+}
+
+// Task to copy haarcascade_frontalface_alt2.xml from samples to the runFilesDir
+tasks.register('copyHaarCascade', Copy) {
+    description = "Copies haarcascade_frontalface_alt2.xml to the runtime directory"
+    group = "build setup"
+    from(rootProject.file("javacv/samples/haarcascade_frontalface_alt2.xml")) // Source from root/samples
+    into(runFilesDir)                                                 // Destination is runFilesDir
+}
+
+//FIXME  must disable "imshow("Kazemi Facial Landmark", img);" for  JavaExec run ?
+tasks.register('run', JavaExec) {
+    group = "application"
+    description = "Runs the LBFFacemarkExampleWithVideo main method"
+    dependsOn downloadLbfModel, copyHaarCascade
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'LBFFacemarkExampleWithVideo'
+    workingDir = runFilesDir
+}
+
+dependencies {
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}

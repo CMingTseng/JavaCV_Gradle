@@ -1,0 +1,105 @@
+plugins {
+    id("de.undercouch.download") version "5.6.0"
+    alias(libs.plugins.kotlin.jvm)
+}
+
+group = 'org.bytedeco.javacv'
+version = '1.5.12'
+description = 'demo'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+//    modularity.inferModulePath.set(true)
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir files('../../javacv/samples')
+            include 'CaffeGooglenet.java'
+        }
+        //FIXME Ref :https://caffe.berkeleyvision.org/model_zoo.html download bvlc_googlenet.prototxt/bvlc_googlenet.caffemodel
+        //https://worksheets.codalab.org/bundles/0x36208f78facf4a51aee2597bbea901d0
+        //https://gist.githubusercontent.com/dudu159632/dd2e7ed4f2dd00cc69c810eeb2ff2930/raw/aea9d176639ab09f8c41f62d75abc9a22a8bc42b/bvlc_googlenet.prototxt
+        //https://docs.opencv.org/4.x/d5/de7/tutorial_dnn_googlenet.html
+        //https://github.com/BVLC/caffe/tree/master/models/bvlc_googlenet
+        resources {
+            srcDir files('../../javacv/samples')
+            includes = [""]
+        }
+    }
+}
+// URLs for the files needed by CaffeGooglenet
+//https://docs.opencv.org/3.4/d5/de7/tutorial_dnn_googlenet.html
+//https://github.com/BVLC/caffe
+//https://gitlab07.cs.washington.edu/syslab/nexus-models/-/tree/master/store/caffe2/bvlc_googlenet
+//https://www.cnblogs.com/tony-yang-flutter/p/16202446.html
+//https://www.deepdetect.com/
+//https://huggingface.co/camenduru/openpose
+//https://gitlab.robotics.bmstu.ru/twdragon/caffe/-/tree/f5fd18b6cd1371ec79b452d803756276a445abb1/models/bvlc_googlenet
+def prototxtUrl = "https://github.com/opencv/opencv_extra/raw/refs/heads/3.4/testdata/dnn/bvlc_googlenet.prototxt"
+def caffemodelUrl = "https://www.deepdetect.com/downloads/platform/pretrained/caffe/googlenet/bvlc_googlenet.caffemodel"
+// New URL for the class names, will be renamed on download
+def classNamesILSVRCUrl = "https://raw.githubusercontent.com/opencv/opencv/refs/heads/3.4/samples/data/dnn/classification_classes_ILSVRC2012.txt"
+def spaceShuttleUrl = "https://docs.opencv.org/3.4/space_shuttle.jpg"
+
+// runFilesDir is already defined in your provided build.gradle
+def runFilesDir = file("$buildDir/runFiles")
+
+// Task to download bvlc_googlenet.prototxt
+tasks.register('downloadPrototxt', Download) {
+    description = "Downloads bvlc_googlenet.prototxt"
+    group = "build setup"
+    src(prototxtUrl)
+    dest(new File(runFilesDir, "bvlc_googlenet.prototxt"))
+    overwrite(false)
+}
+
+// Task to download bvlc_googlenet.caffemodel
+tasks.register('downloadCaffeModel', Download) {
+    description = "Downloads bvlc_googlenet.caffemodel"
+    group = "build setup"
+    src(caffemodelUrl)
+    dest(new File(runFilesDir, "bvlc_googlenet.caffemodel"))
+    overwrite(false)
+}
+
+// Task to download classification_classes_ILSVRC2012.txt and rename it to synset_words.txt
+tasks.register('downloadSynsetWords', Download) {
+    description = "Downloads ILSVRC2012 class names and saves as synset_words.txt"
+    group = "build setup"
+    src(classNamesILSVRCUrl) // Source URL of the ILSVRC file
+    dest(new File(runFilesDir, "synset_words.txt")) // Destination filename is synset_words.txt
+    overwrite(true) // Set to true for the first run to ensure the new file is downloaded and renamed
+    // Can be set to false later after confirming it works.
+}
+
+// Task to download space_shuttle.jpg
+tasks.register('downloadSpaceShuttleImage', Download) {
+    description = "Downloads space_shuttle.jpg"
+    group = "build setup"
+    src(spaceShuttleUrl)
+    dest(new File(runFilesDir, "space_shuttle.jpg"))
+    overwrite(false)
+}
+
+tasks.register('run', JavaExec) {
+    group = "application"
+    description = "Runs the CaffeGooglenet main method after downloading necessary files"
+    dependsOn downloadPrototxt, downloadCaffeModel, downloadSynsetWords, downloadSpaceShuttleImage
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'CaffeGooglenet'
+    workingDir = runFilesDir
+    systemProperty "java.awt.headless", "false"
+}
+
+dependencies {
+
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}

@@ -1,0 +1,54 @@
+plugins {
+   alias(libs.plugins.kotlin.jvm)
+}
+//FIXME too old 'java.applet.Applet' is deprecated since version 9 and marked for removal
+group = 'org.bytedeco.javacv'
+version = '1.5.12'
+description = 'demo'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir files('../../javacv/samples')
+            include 'FaceApplet.java'
+        }
+        resources {
+            srcDir files('../../javacv/samples')
+            includes = ["haarcascade_frontalface_alt.xml"]
+        }
+    }
+}
+
+tasks.register('run', Exec) {
+    group = "Applet"
+    description = "Runs the FaceApplet using appletviewer"
+    dependsOn classes
+    def jdkHome = System.getProperty("java.home")
+    def appletViewerExecutable = ""
+    if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+        appletViewerExecutable = new File(jdkHome, "bin/appletviewer.exe").absolutePath
+    } else {
+        appletViewerExecutable = new File(jdkHome, "bin/appletviewer").absolutePath
+    }
+    def htmlFileToRun = rootProject.file("../../javacv/samples/haarcascade_frontalface_alt2.html").absolutePath
+    workingDir = rootProject.file("samples")
+    String appletClasspath = sourceSets.main.runtimeClasspath.getAsPath()
+    commandLine appletViewerExecutable, "-J-Djava.class.path=${appletClasspath}", "run_faceapplet.html"
+    commandLine appletViewerExecutable, "-J-Djava.class.path=${appletClasspath}", "run_faceapplet.html"
+    commandLine appletViewerExecutable, "-J-Djava.class.path=${appletClasspath}", "haarcascade_frontalface_alt2.html"
+}
+
+dependencies {
+
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}

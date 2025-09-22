@@ -1,0 +1,73 @@
+plugins {
+    id("de.undercouch.download") version "5.6.0"
+    alias(libs.plugins.kotlin.jvm)
+}
+
+group = 'org.bytedeco.javacv'
+version = '1.5.12'
+description = 'demo'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir files('../../javacv/samples')
+            include 'DeepLearningFaceDetection.java'
+        }
+        resources {
+
+//            srcDir files('../../javacv/samples')
+//            includes = [""]
+        }
+    }
+}
+//FIXME
+// prototxt  : https://github.com/opencv/opencv/blob/master/samples/dnn/face_detector/deploy.prototxt
+// caffemodel  : https://github.com/opencv/opencv_3rdparty/blob/dnn_samples_face_detector_20170830/res10_300x300_ssd_iter_140000.caffemodel
+// URLs for the model files
+def protoFileUrl = "https://raw.githubusercontent.com/opencv/opencv/master/samples/dnn/face_detector/deploy.prototxt"
+def caffeModelUrl = "https://github.com/opencv/opencv_3rdparty/raw/dnn_samples_face_detector_20170830/res10_300x300_ssd_iter_140000.caffemodel"
+
+// Target directory for downloaded files (the 'samples' directory, which is the workingDir for 'run' task)
+def runFilesDir = file("$buildDir/runFiles")
+
+// Task to download deploy.prototxt
+tasks.register('downloadProtoFile', Download) {
+    description = "Downloads deploy.prototxt for DeepLearningFaceDetection"
+    group = "build setup"
+    src(protoFileUrl)
+    dest(new File(runFilesDir, "deploy.prototxt"))
+    overwrite(false) // Only download if the file doesn't exist
+}
+
+// Task to download res10_300x300_ssd_iter_140000.caffemodel
+tasks.register('downloadCaffeModel', Download) {
+    description = "Downloads res10_300x300_ssd_iter_140000.caffemodel for DeepLearningFaceDetection"
+    group = "build setup"
+    src(caffeModelUrl)
+    dest(new File(runFilesDir, "res10_300x300_ssd_iter_140000.caffemodel"))
+    overwrite(false) // Only download if the file doesn't exist
+}
+
+tasks.register('run', JavaExec) {
+    group = "application"
+    description = "Runs the DeepLearningFaceDetection"
+    dependsOn downloadProtoFile, downloadCaffeModel
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'DeepLearningFaceDetection'
+    workingDir = runFilesDir
+}
+
+dependencies {
+
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}

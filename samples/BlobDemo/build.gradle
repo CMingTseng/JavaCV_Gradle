@@ -1,0 +1,53 @@
+plugins {
+   alias(libs.plugins.kotlin.jvm)
+}
+
+group = 'org.bytedeco.javacv'
+version = '1.5.12'
+description = 'demo'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir files('../../javacv/samples')
+            include 'BlobDemo.java'
+        }
+        resources {
+            srcDir files('../../javacv/samples')
+            // Include image files needed by BlobDemo
+            includes = ["BlackBalls.jpg", "Shapes1.jpg", "Shapes2.jpg", "Blob1.jpg", "Blob2.jpg", "Blob3.jpg", "Rice.jpg"]
+        }
+    }
+}
+
+tasks.register('run', JavaExec) {
+    group = "application"
+    description = "Runs the BlobDemo main method"
+
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'BlobDemo'
+
+    // Set the working directory to where the images are located.
+    // If images are in the 'samples' directory relative to the project root:
+    workingDir = rootProject.file("samples")
+    // Or if 'samples' is at the same level as the BlobDemo module directory:
+    // workingDir = project.file("../samples")
+
+    // Ensure that the 'resources' in sourceSets.main are processed
+    // so they are available on the classpath if loaded via getResource,
+    // but for direct file access like cvLoadImage("filename"), workingDir is key.
+}
+
+dependencies {
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+    implementation("org.slf4j:slf4j-api:2.0.17")
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}

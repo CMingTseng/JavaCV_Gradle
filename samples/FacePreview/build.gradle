@@ -1,0 +1,119 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+}
+//FIXME build apk pass lost res
+android {
+    namespace 'org.bytedeco.javacv.facepreview'
+    compileSdk 36
+    buildFeatures {
+        viewBinding true
+    }
+    defaultConfig {
+        applicationId "org.bytedeco.javacv.facepreview"
+        minSdk 21
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+        ndk {
+            abiFilters ("armeabi-v7a", "arm64-v8a")
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    sourceSets{
+        main {
+            java {
+                srcDir files('../../javacv/samples')
+                includes = ["FacePreview.java"]
+            }
+            //FIXME Could not extract the classifier file from Java resource.
+            // "/org/bytedeco/javacv/facepreview/haarcascade_frontalface_alt.xml",
+            resources{
+                srcDir files('../../javacv/samples')
+                includes = ["haarcascade_frontalface_alt.xml"]
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11.toString()
+    }
+
+    packaging {
+        resources {
+            excludes += "META-INF/*"
+            excludes += "META-INF/INDEX.LIST"
+            excludes += "META-INF/*.kotlin_module"
+            excludes += "META-INF/LICENSE"
+            excludes += "META-INF/LICENSE.txt"
+            excludes += "META-INF/NOTICE"
+            excludes += "META-INF/io.netty.versions.properties"
+            excludes += "META-INF/AL2.0"
+            excludes += "META-INF/LGPL2.1"
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+
+            excludes += "META-INF/native-image/android-x86_64/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/android-x86_64/jnijavacpp/reflect-config.json"
+            excludes += "META-INF/native-image/android-x86/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/android-x86/jnijavacpp/reflect-config.json"
+            excludes += "META-INF/native-image/android-arm64/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/android-arm64/jnijavacpp/reflect-config.json"
+            excludes += "META-INF/native-image/android-arm/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/android-arm/jnijavacpp/reflect-config.json"
+
+            excludes += "META-INF/native-image/windows-x86_64/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/windows-x86_64/jnijavacpp/reflect-config.json"
+            excludes += "META-INF/native-image/windows-x86/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/windows-x86/jnijavacpp/reflect-config.json"
+
+            excludes += "META-INF/native-image/ios-x86_64/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/ios-x86_64/jnijavacpp/reflect-config.json"
+            excludes += "META-INF/native-image/ios-x86/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/ios-x86/jnijavacpp/reflect-config.json"
+            excludes += "META-INF/native-image/ios-arm64/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/ios-arm64/jnijavacpp/reflect-config.json"
+            excludes += "META-INF/native-image/ios-arm/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/ios-arm/jnijavacpp/reflect-config.json"
+
+            excludes += "META-INF/native-image/linux-x86_64/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/linux-x86_64/jnijavacpp/reflect-config.json"
+            excludes += "META-INF/native-image/linux-x86/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/linux-x86/jnijavacpp/reflect-config.json"
+            excludes += "META-INF/native-image/linux-arm64/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/linux-arm64/jnijavacpp/reflect-config.json"
+            excludes += "META-INF/native-image/linux-armhf/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/linux-armhf/jnijavacpp/reflect-config.json"
+            excludes += "META-INF/native-image/linux-ppc64le/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/linux-ppc64le/jnijavacpp/reflect-config.json"
+
+            excludes += "META-INF/native-image/macosx-x86_64/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/macosx-x86_64/jnijavacpp/reflect-config.json"
+            excludes += "META-INF/native-image/macosx-x86/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/macosx-x86/jnijavacpp/reflect-config.json"
+            excludes += "META-INF/native-image/macosx-arm64/jnijavacpp/jni-config.json"
+            excludes += "META-INF/native-image/macosx-arm64/jnijavacpp/reflect-config.json"
+
+        }
+    }
+}
+
+dependencies {
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+//    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+
+    testImplementation libs.junit
+    androidTestImplementation libs.runner
+    androidTestImplementation libs.espresso.core
+}

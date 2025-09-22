@@ -1,0 +1,80 @@
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+    id("de.undercouch.download") version "5.6.0"
+}
+
+group = 'org.bytedeco.javacv'
+version = '1.5.12'
+description = 'demo'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir files('../../javacv/samples')
+            include 'KazemiFacemarkExample.java'
+        }
+        resources {
+            srcDir files('../../javacv/samples')
+            includes = [""]
+        }
+    }
+}
+
+// URLs for the model files
+def haarCascadeUrl = "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_alt2.xml"
+def facemarkModelUrl = "https://raw.githubusercontent.com/opencv/opencv_3rdparty/contrib_face_alignment_20170818/face_landmark_model.dat"
+
+// Define a directory within the module's build directory for runtime files
+def runFilesDir = file("$buildDir/runFiles") // Unique name to avoid clashes
+
+// Task to download haarcascade_frontalface_alt2.xml
+tasks.register('downloadHaarCascadeKazemi', Download) { // Renamed to be more specific
+    description = "Downloads haarcascade_frontalface_alt2.xml for KazemiFacemarkExample"
+    group = "build setup"
+    src(haarCascadeUrl)
+    dest(new File(runFilesDir, "haarcascade_frontalface_alt2.xml"))
+    overwrite(false)
+}
+
+// Task to download face_landmark_model.dat
+tasks.register('downloadFacemarkModelKazemi', Download) { // Renamed
+    description = "Downloads face_landmark_model.dat for KazemiFacemarkExample"
+    group = "build setup"
+    src(facemarkModelUrl)
+    dest(new File(runFilesDir, "face_landmark_model.dat"))
+    overwrite(false)
+}
+
+// Task to copy face.jpg from samples to the runFilesDir
+tasks.register('copyFaceJpgForKazemi', Copy) { // Renamed
+    description = "Copies face.jpg to the runtime directory for KazemiFacemarkExample"
+    group = "build setup"
+    from(rootProject.file("javacv/samples/face.jpg")) // Source
+    into(runFilesDir)                          // Destination
+    // This task will only run if the source file is newer than the destination, or if dest doesn't exist.
+}
+
+//FIXME  must disable "imshow("Kazemi Facial Landmark", img);" for  JavaExec run ?
+tasks.register('run', JavaExec) {
+    group = "application"
+    description = "Runs the KazemiFacemarkExample main method"
+    dependsOn downloadHaarCascadeKazemi, downloadFacemarkModelKazemi, copyFaceJpgForKazemi
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'KazemiFacemarkExample'
+    workingDir = runFilesDir
+    systemProperty "java.awt.headless", "false"
+}
+
+dependencies {
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}

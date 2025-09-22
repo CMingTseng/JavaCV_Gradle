@@ -1,0 +1,118 @@
+// In /PacketRecorderTest/build.gradle
+import java.nio.file.Files // <--- ADD THIS IMPORT
+import java.nio.file.Paths // You might need this if you construct Paths objects directly
+import java.nio.charset.StandardCharsets
+
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+}
+
+group = 'org.bytedeco.javacv'
+version = '1.5.12'
+description = 'demo'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir files('../../javacv/samples')
+            include 'PacketRecorderTest.java'
+        }
+        resources {
+            srcDir files('../../javacv/samples')
+            includes = [""]
+        }
+    }
+}
+
+def originalFilePathString = "/home/usr/videos/VIDEO_FILE_NAME.mp4"
+def newFilePathString      = "/tmp/my_test_video_for_class_mod.mp4"
+// Helper function - This is fine as it's used during configuration phase now
+File locateTargetClassFile(Project proj, String classNameInDefaultPackage) {
+    File classFile = proj.sourceSets.main.output.classesDirs.findResult { File dir ->
+        File potentialFile = new File(dir, classNameInDefaultPackage)
+        potentialFile.exists() ? potentialFile : null
+    }
+    if (classFile == null) {
+        throw new org.gradle.api.GradleException("Required class file '${classNameInDefaultPackage}' not found in output directories.")
+    }
+    return classFile
+}
+
+tasks.register('modifyPacketRecorderClassFile', DefaultTask) {
+    description = "Modifies the hardcoded inputFile string in PacketRecorderTest.class"
+    group = "build"
+    dependsOn classes
+    def targetFile = project.provider {
+        locateTargetClassFile(project, "PacketRecorderTest.class")
+    }
+    inputs.file(targetFile)
+            .withPathSensitivity(PathSensitivity.ABSOLUTE) // Or .NAME_ONLY if content hash is primary driver
+            .withPropertyName("targetClassFile")
+    inputs.property("originalPath", originalFilePathString)
+    inputs.property("newPath", newFilePathString)
+    doLast {
+        File actualTargetClassFile = targetFile.get() // Get the resolved file
+
+        if (actualTargetClassFile == null || !actualTargetClassFile.exists()) {
+             println "Error: PacketRecorderTest.class not found. The provider returned null or file doesn't exist at execution."
+            return
+        }
+
+        println "Target class file is: ${actualTargetClassFile.absolutePath}"
+        println "Attempting to modify ${actualTargetClassFile.absolutePath}"
+
+        byte[] originalBytes = Files.readAllBytes(actualTargetClassFile.toPath())
+        byte[] modifiedBytes
+
+        byte[] originalPathBytes = originalFilePathString.getBytes(StandardCharsets.UTF_8) // Loaded from task property now
+        byte[] newPathBytes = newFilePathString.getBytes(StandardCharsets.UTF_8)       // Loaded from task property now
+
+        if (originalPathBytes.length != newPathBytes.length) {
+            println """
+            ERROR: Byte length of original path (${originalPathBytes.length}) 
+                   and new path (${newPathBytes.length}) do not match.
+                   Simple byte replacement will likely corrupt the class file.
+                   Aborting modification.
+            """.stripIndent()
+            modifiedBytes = originalBytes;
+        } else {
+            String originalContent = new String(originalBytes, StandardCharsets.ISO_8859_1)
+            String newContent = originalContent.replace(originalFilePathString, newFilePathString)
+
+            if (originalContent.equals(newContent)) {
+                println "Warning: Original path string '${originalFilePathString}' not found in class file using simple string replace. No modification made."
+                modifiedBytes = originalBytes
+            } else {
+                println "Path string '${originalFilePathString}' found and replaced with '${newFilePathString}' (using simple string replace)."
+                modifiedBytes = newContent.getBytes(StandardCharsets.ISO_8859_1)
+            }
+        }
+
+        Files.write(actualTargetClassFile.toPath(), modifiedBytes)
+        println "Finished attempting to modify ${actualTargetClassFile.absolutePath}"
+    }
+}
+//FIXME must  change Java Code because "inputFile" is hard code
+tasks.register('run', JavaExec) {
+    group = "application"
+    description = "Runs the PacketRecorderTest main method"
+    dependsOn modifyPacketRecorderClassFile//TODO the hackway !! 
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'PacketRecorderTest'
+    workingDir = rootProject.file("samples")
+}
+
+dependencies {
+
+    implementation(libs.org.bytedeco.javacv.platform)
+    implementation(libs.org.bytedeco.opencv.platform.gpu)
+    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}
