@@ -33,12 +33,12 @@ tasks.register('run', JavaExec) {
     workingDir = rootProject.file("samples")
 }
 
-//FIXME  must fix version use old javacv !!
+// [說明註解] 本模組因 RealSense 2 SDK 對新版 JavaCV 的相容性高度敏感，
+// 依據原始專案之要求，刻意隔離並 Hardcode 使用舊版 1.5.12 穩定套件，不隨全域 toml 升級。
 dependencies {
-
-    implementation(libs.org.bytedeco.javacv.platform)
-    implementation(libs.org.bytedeco.opencv.platform.gpu)
-    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
+    implementation("org.bytedeco:javacv-platform:1.5.12")
+    implementation("org.bytedeco:opencv-platform-gpu:4.11.0-1.5.12")
+    implementation("org.bytedeco:ffmpeg-platform-gpl:7.1.1-1.5.12")
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'

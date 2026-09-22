@@ -7,8 +7,9 @@ version = '1.5.12'
 description = 'demo'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
 }
 
 sourceSets {
@@ -26,29 +27,31 @@ sourceSets {
 
 tasks.register('run', Exec) {
     group = "Applet"
-    description = "Runs the FaceApplet using appletviewer"
+    description = "Runs the FaceApplet using appletviewer from Java 8 Toolchain"
     dependsOn classes
-    def jdkHome = System.getProperty("java.home")
+    
+    // 取得 Java 8 Toolchain 的路徑以執行 appletviewer
+    def launcher = javaToolchains.launcherFor(java.toolchain).get()
+    def javaHome = launcher.metadata.installationPath.asFile.absolutePath
     def appletViewerExecutable = ""
     if (System.getProperty("os.name").toLowerCase().contains("windows")) {
-        appletViewerExecutable = new File(jdkHome, "bin/appletviewer.exe").absolutePath
+        appletViewerExecutable = new File(javaHome, "bin/appletviewer.exe").absolutePath
     } else {
-        appletViewerExecutable = new File(jdkHome, "bin/appletviewer").absolutePath
+        appletViewerExecutable = new File(javaHome, "bin/appletviewer").absolutePath
     }
-    def htmlFileToRun = rootProject.file("../../javacv/samples/haarcascade_frontalface_alt2.html").absolutePath
+    
     workingDir = rootProject.file("samples")
     String appletClasspath = sourceSets.main.runtimeClasspath.getAsPath()
-    commandLine appletViewerExecutable, "-J-Djava.class.path=${appletClasspath}", "run_faceapplet.html"
-    commandLine appletViewerExecutable, "-J-Djava.class.path=${appletClasspath}", "run_faceapplet.html"
-    commandLine appletViewerExecutable, "-J-Djava.class.path=${appletClasspath}", "haarcascade_frontalface_alt2.html"
+    commandLine appletViewerExecutable, "-J-Djava.class.path=${appletClasspath}", "../../javacv/samples/haarcascade_frontalface_alt2.html"
 }
 
+// [說明註解] 本模組 FaceApplet 溯源修復：
+// 1. 本代碼繼承自 Applet，必須在 Java 8 下運行。
+// 2. 代碼中使用 org.bytedeco.opencv package，這是 2019 年 1.5 版本引入的。
+// 3. 2014-2015 年的代碼邏輯 (cvLoad) 在 1.5 之後被標記為遺失。
+// 我們嘗試使用 1.5.1 版本，這是 package 剛變更且 C-API 支援相對完整的轉折點。
 dependencies {
-
     implementation(libs.org.bytedeco.javacv.platform)
-    implementation(libs.org.bytedeco.opencv.platform.gpu)
-    implementation(libs.org.bytedeco.ffmpeg.platform.gpl)
-
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
 }
